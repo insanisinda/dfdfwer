@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: "rtrtrt-1424"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: "rtrtrt-1424"
+  template:
+    metadata:
+      labels:
+        app: "rtrtrt-1424"
+    spec:
+      containers:
+        - name: "rtrtrt-1424"
+          image: "modol.azurecr.io/rtrtrt"
+          ports:
+          - containerPort: 80
