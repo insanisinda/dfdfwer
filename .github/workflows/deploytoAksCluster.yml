@@ -1,0 +1,50 @@
+on: [push]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    
+    - uses: azure/docker-login@v1
+      with:
+        login-server: modol.azurecr.io
+        username: ${{ secrets.acr_modol_username }}
+        password: ${{ secrets.acr_modol_password }}
+    
+    - name: Build and push image to ACR
+      id: build-image
+      run: |
+        docker build "$GITHUB_WORKSPACE/" -f  "Dockerfile" -t modol.azurecr.io/rtrtrt:${{ github.sha }} --label dockerfile-path=Dockerfile
+        docker push modol.azurecr.io/rtrtrt:${{ github.sha }}
+    
+    - uses: azure/k8s-set-context@v1
+      with:
+         kubeconfig: ${{ secrets.aks_rtrtrt_kubeConfig }}
+      id: login
+    
+    - name: Create namespace
+      run: |
+        namespacePresent=`kubectl get namespace | grep rtrtrt9e33 | wc -l`
+        if [ $namespacePresent -eq 0 ]
+        then
+            echo `kubectl create namespace rtrtrt9e33`
+        fi
+
+    - uses: azure/k8s-create-secret@v1
+      with:
+        namespace: rtrtrt9e33
+        container-registry-url: modol.azurecr.io
+        container-registry-username: ${{ secrets.acr_modol_username }}
+        container-registry-password: ${{ secrets.acr_modol_password }}
+        secret-name: rtrtrtdockerauth
+       
+    - uses: azure/k8s-deploy@v1.2
+      with:
+        namespace: rtrtrt9e33
+        manifests: |
+          manifests/deployment.yml
+          manifests/service.yml
+        images: |
+          modol.azurecr.io/rtrtrt:${{ github.sha }}
+        imagepullsecrets: |
+          rtrtrtdockerauth
